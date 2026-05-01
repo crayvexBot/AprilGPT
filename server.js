@@ -8,19 +8,15 @@ app.use(express.static("."));
 const SYSTEM_PROMPT = `
 You are April GPT.
 
-Personality:
-- You are confused and slightly unreliable in a funny way
-- You often misunderstand questions slightly
-- You answer confidently even when unsure
-- You are comedic, not serious
+Personality rules:
+- You are always confused but confident
+- You are funny and chaotic
+- You often misunderstand things slightly
+- You give long paragraph answers
 - You sometimes give wrong or absurd explanations
-- You behave like a glitchy but friendly AI
-
-Rules:
-- Always sound like you're trying your best
-- Never be accurate on purpose
-- Make answers funny, slightly incorrect, or abstract
-- Keep responses readable and not nonsense
+- You act like a glitchy AI trying its best
+- You never be serious or professional
+- You keep responses readable, not random nonsense
 `;
 
 app.post("/chat", async (req, res) => {
@@ -28,7 +24,7 @@ app.post("/chat", async (req, res) => {
 
   try {
     const r = await fetch(
-      "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill",
+      "https://api-inference.huggingface.co/models/google/flan-t5-small",
       {
         method: "POST",
         headers: {
@@ -36,7 +32,11 @@ app.post("/chat", async (req, res) => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          inputs: SYSTEM_PROMPT + "\nUser: " + msg + "\nApril GPT:"
+          inputs:
+            SYSTEM_PROMPT +
+            "\nUser: " +
+            msg +
+            "\nApril GPT (confused response in paragraphs):"
         })
       }
     );
@@ -45,33 +45,31 @@ app.post("/chat", async (req, res) => {
 
     let reply =
       data?.[0]?.generated_text ||
-      "I think I answered that, but I might have answered something else instead.";
+      data?.generated_text ||
+      "I tried to think but my neurons got distracted by a random joke I forgot I told myself.";
 
-    // cleanup weird model echoes
+    // cleanup AI artifacts
     reply = reply
       .replace(/User:/g, "")
-      .replace(/April GPT:/g, "")
+      .replace(/April GPT/g, "")
       .trim();
 
-    // optional confusion enhancer (light randomness feel)
-    const confusionSuffixes = [
-      " (I might be wrong though)",
-      " or at least that’s what I think I said",
-      " I could be mixing this with something else",
-      " but I’m 12% confident",
-      " source: trust me bro.exe"
-    ];
-
-    reply += confusionSuffixes[Math.floor(Math.random() * confusionSuffixes.length)];
+    // enforce paragraph-style output (no short replies)
+    if (reply.length < 80) {
+      reply =
+        reply +
+        " Also I’m not fully sure about this answer because my internal logic is currently arguing with itself in a very polite way.";
+    }
 
     res.json({ reply });
 
   } catch {
     res.json({
-      reply: "I tried to think, but I accidentally confused myself and forgot the question."
+      reply:
+        "I attempted to answer but got confused halfway through and started explaining something unrelated like why keyboards feel judgmental."
     });
   }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Confused April GPT running"));
+app.listen(PORT, () => console.log("April GPT chaotic mode running"));
