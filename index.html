@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>April GPT</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="topbar">
+  April GPT • Chaos Humor Engine
+</div>
+
+<div id="boot">
+  Booting humor engine...<br>
+  Loading sarcasm modules...<br>
+  Injecting comedy kernel...<br>
+  Ready to joke.
+</div>
+
+<div id="chat" style="display:none;">
+
+  <div id="output"></div>
+
+  <div id="inputBar">
+    <input id="msg" placeholder="Ask something funny..."
+      onkeydown="if(event.key==='Enter') send()">
+    <button onclick="send()">Send</button>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
