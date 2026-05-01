@@ -1,0 +1,68 @@
+body {
+  margin: 0;
+  background: #050505;
+  color: #00ff88;
+  font-family: monospace;
+}
+
+/* top bar */
+#topbar {
+  padding: 10px;
+  border-bottom: 1px solid #00ff88;
+  opacity: 0.8;
+}
+
+/* boot screen */
+#boot {
+  padding: 20px;
+  text-shadow: 0 0 6px #00ff88;
+}
+
+/* chat */
+#chat {
+  padding: 15px;
+}
+
+#output {
+  height: 75vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* input */
+#inputBar {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+input {
+  flex: 1;
+  padding: 12px;
+  background: black;
+  border: 1px solid #00ff88;
+  color: #00ff88;
+  outline: none;
+}
+
+button {
+  padding: 12px;
+  background: black;
+  border: 1px solid #00ff88;
+  color: #00ff88;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #00ff8820;
+}
+
+/* typing */
+#typing {
+  opacity: 0.6;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0.2; }
+}
