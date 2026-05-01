@@ -34,30 +34,40 @@ Behavior:
 `;
 
 /* =========================
-   UPDATED GROQ MODEL (FIXED)
+   MODELS (STABLE)
    ========================= */
-const MODEL = "llama-3.3-70b-versatile";
+const MODELS = [
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant"
+];
 
 /* =========================
-   TIMEOUT WRAPPER
+   SIMPLE MEMORY (IN RAM)
+   ========================= */
+const memory = new Map(); // userId -> messages[]
+
+function getHistory(userId) {
+  if (!memory.has(userId)) memory.set(userId, []);
+  return memory.get(userId);
+}
+
+/* =========================
+   TIMEOUT
    ========================= */
 function withTimeout(ms, promise) {
   return new Promise((resolve) => {
     const t = setTimeout(() => resolve(null), ms);
-
-    promise
-      .then((res) => {
-        clearTimeout(t);
-        resolve(res);
-      })
-      .catch(() => resolve(null));
+    promise.then(r => {
+      clearTimeout(t);
+      resolve(r);
+    }).catch(() => resolve(null));
   });
 }
 
 /* =========================
-   GROQ CALL (STABLE)
+   GROQ CALL
    ========================= */
-async function callGroq(msg) {
+async function callGroq(model, messages) {
   const response = await withTimeout(
     8000,
     fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -67,11 +77,8 @@ async function callGroq(msg) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: msg }
-        ],
+        model,
+        messages,
         temperature: 0.9
       })
     })
@@ -81,40 +88,49 @@ async function callGroq(msg) {
 
   const data = await response.json().catch(() => null);
 
-  console.log("GROQ RESPONSE:", data);
+  if (!data || data.error) return null;
 
-  // error handling
-  if (!data || data?.error) return null;
-
-  const reply = data?.choices?.[0]?.message?.content;
-
-  if (typeof reply !== "string" || reply.trim().length < 2) {
-    return null;
-  }
-
-  return reply.trim();
+  return data?.choices?.[0]?.message?.content || null;
 }
 
 /* =========================
-   CHAT ENDPOINT
+   CHAT ENDPOINT (WITH MEMORY)
    ========================= */
 app.post("/chat", async (req, res) => {
-  const msg = req.body.message;
+  const msg = req.body.message || "";
+  const userId = req.body.userId || "default";
 
-  try {
-    const reply = await callGroq(msg);
+  const history = getHistory(userId);
 
-    if (reply) {
-      return res.json({ reply });
+  // build messages with memory
+  const messages = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...history,
+    { role: "user", content: msg }
+  ];
+
+  for (const model of MODELS) {
+    try {
+      const reply = await callGroq(model, messages);
+
+      if (reply) {
+        // save memory
+        history.push({ role: "user", content: msg });
+        history.push({ role: "assistant", content: reply });
+
+        // keep memory small
+        if (history.length > 20) history.splice(0, 2);
+
+        return res.json({ reply });
+      }
+    } catch (e) {
+      console.log("Model failed:", model);
     }
-  } catch (e) {
-    console.log("Groq error:", e);
   }
 
-  // FINAL FALLBACK (NEVER FAILS)
   return res.json({
     reply:
-      "I tried thinking about your message, but my neural circuits started arguing like confused philosophers inside a neon server loop. So I responded anyway with chaotic confidence and emotional buffering noise."
+      "I tried thinking about your message, but my neural circuits started arguing inside a neon loop of confusion. So I responded anyway with chaotic confidence."
   });
 });
 
@@ -123,17 +139,5 @@ app.post("/chat", async (req, res) => {
    ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log("April GPT running on Groq (UPDATED MODEL FIXED)")
-);  return res.json({
-    reply:
-      "I tried thinking about your message, but my neural circuits started arguing like confused philosophers inside a neon server loop. So I responded anyway with chaotic confidence and emotional buffering noise."
-  });
-});
-
-/* =========================
-   START SERVER
-   ========================= */
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log("April GPT running on Groq (stable production version)")
+  console.log("April GPT v5 running (STREAM + MEMORY + STABLE)")
 );
