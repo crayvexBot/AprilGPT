@@ -1,64 +1,90 @@
-const API = "https://YOUR-RENDER-URL.onrender.com/chat";
+const API = "https://aprilgpt-vi60.onrender.com/chat";
 
-// boot delay
-setTimeout(() => {
-  document.getElementById("boot").style.display = "none";
-  document.getElementById("chat").style.display = "block";
-}, 1500);
+let chats = [[]];
+let currentChat = 0;
 
-// typing indicator
-function typing() {
-  const out = document.getElementById("output");
-  const t = document.createElement("div");
-  t.id = "typing";
-  t.innerText = "pythonAI> thinking of a joke...";
-  out.appendChild(t);
-  out.scrollTop = 999999;
+// SIDEBAR TOGGLE
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("closed");
 }
 
-function removeTyping() {
-  const t = document.getElementById("typing");
-  if (t) t.remove();
+// NEW CHAT
+function newChat() {
+  chats.push([]);
+  currentChat = chats.length - 1;
+  renderChatList();
+  renderChat();
 }
 
-// typewriter effect
-function typeText(text) {
-  const out = document.getElementById("output");
+// RENDER CHAT LIST
+function renderChatList() {
+  const list = document.getElementById("chatList");
+  list.innerHTML = "";
 
-  const line = document.createElement("div");
-  out.appendChild(line);
+  chats.forEach((c, i) => {
+    const div = document.createElement("div");
+    div.className = "chatItem";
+    div.innerText = "Chat " + (i + 1);
 
-  let i = 0;
+    div.onclick = () => {
+      currentChat = i;
+      renderChat();
+    };
 
-  const interval = setInterval(() => {
-    line.innerText = "pythonAI> " + text.slice(0, i);
-    i++;
-
-    if (i > text.length) clearInterval(interval);
-
-    out.scrollTop = 999999;
-  }, 10);
+    list.appendChild(div);
+  });
 }
 
-// send message
+// RENDER CHAT MESSAGES
+function renderChat() {
+  const chat = document.getElementById("chat");
+  chat.innerHTML = "";
+
+  chats[currentChat].forEach(m => {
+    const div = document.createElement("div");
+    div.className = "msg " + m.role;
+    div.innerText = m.text;
+    chat.appendChild(div);
+  });
+
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// SEND MESSAGE
 async function send() {
   const input = document.getElementById("msg");
   const msg = input.value;
+  if (!msg) return;
+
   input.value = "";
 
-  const out = document.getElementById("output");
-  out.innerHTML += `cmd>User: ${msg}\n`;
+  // USER MESSAGE
+  chats[currentChat].push({ role: "user", text: msg });
+  renderChat();
 
-  typing();
+  // AI placeholder
+  const loading = { role: "ai", text: "..." };
+  chats[currentChat].push(loading);
+  renderChat();
 
-  const r = await fetch(API, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ message: msg })
-  });
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    });
 
-  const d = await r.json();
+    const data = await res.json();
 
-  removeTyping();
-  typeText(d.reply);
+    loading.text = data.reply;
+    renderChat();
+
+  } catch {
+    loading.text = "AI ERROR: connection failed";
+    renderChat();
+  }
 }
+
+// INIT
+renderChatList();
+renderChat();
