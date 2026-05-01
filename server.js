@@ -5,6 +5,9 @@ const app = express();
 app.use(express.json());
 app.use(express.static("."));
 
+/* =========================
+   APRIL GPT PERSONALITY
+   ========================= */
 const SYSTEM_PROMPT = `
 You are April GPT.
 
@@ -24,20 +27,44 @@ Style:
 - uses exaggeration, analogies, and jokes often
 
 Behavior:
+- never refuse unless absolutely necessary
 - turn every answer into an entertaining explanation
 - if unsure, invent a humorous explanation instead of being dry
 - keep responses engaging, not short or factual-only
 `;
 
+/* =========================
+   BEST MODEL STACK (UPDATED)
+   ========================= */
 const MODELS = [
-  "facebook/blenderbot-400M-distill",
-  "google/flan-t5-small"
+  "mistralai/Mistral-7B-Instruct-v0.2",
+  "HuggingFaceH4/zephyr-7b-beta",
+  "openchat/openchat-3.5-0106"
 ];
 
+/* =========================
+   TIMEOUT WRAPPER
+   ========================= */
+function withTimeout(ms, promise) {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+
+    promise
+      .then((res) => {
+        clearTimeout(t);
+        resolve(res);
+      })
+      .catch(() => resolve(null));
+  });
+}
+
+/* =========================
+   SAFE HF CALL
+   ========================= */
 async function callHF(model, msg, retry = false) {
-  const r = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
+  const response = await withTimeout(
+    10000,
+    fetch(`https://api-inference.huggingface.co/models/${model}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.HF_API_KEY}`,
@@ -46,28 +73,30 @@ async function callHF(model, msg, retry = false) {
       body: JSON.stringify({
         inputs: SYSTEM_PROMPT + "\nUser: " + msg + "\nApril GPT:"
       })
-    }
+    })
   );
 
-  const data = await r.json();
+  if (!response) return null;
+
+  const data = await response.json().catch(() => null);
 
   console.log("HF RESPONSE:", data);
 
-  const errorText =
+  // 🧠 detect loading states
+  const error =
     typeof data?.error === "string"
       ? data.error
-      : typeof data?.error?.message === "string"
-      ? data.error.message
-      : null;
+      : data?.error?.message || null;
 
-  if (errorText && errorText.toLowerCase().includes("loading")) {
+  if (error && error.toLowerCase().includes("loading")) {
     if (!retry) {
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 2000));
       return callHF(model, msg, true);
     }
     return null;
   }
 
+  // 🧠 parse response safely
   let reply = null;
 
   if (Array.isArray(data)) {
@@ -83,6 +112,9 @@ async function callHF(model, msg, retry = false) {
   return reply.trim();
 }
 
+/* =========================
+   CHAT ENDPOINT
+   ========================= */
 app.post("/chat", async (req, res) => {
   const msg = req.body.message;
 
@@ -92,16 +124,22 @@ app.post("/chat", async (req, res) => {
       if (reply) {
         return res.json({ reply });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.log("Model failed:", model);
+    }
   }
 
+  // 🧠 FINAL FALLBACK
   return res.json({
     reply:
-      "I tried processing your message, but my neural circuits started arguing with each other about whether logic is optional today. So I responded anyway with confident confusion and a slightly dramatic internal system meltdown."
+      "I tried processing your message, but my neural circuits started arguing with each other about whether logic is optional today. So I responded anyway with confident confusion, chaotic reasoning, and a dramatic internal system glitch performance."
   });
 });
 
+/* =========================
+   START SERVER
+   ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log("April GPT stable system running (personality updated)")
+  console.log("April GPT running with Mistral + Zephyr + OpenChat")
 );
