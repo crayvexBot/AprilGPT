@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>April GPT</title>
+  <title>April GPT v2</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -10,26 +10,20 @@
 
   <!-- SIDEBAR -->
   <div id="sidebar" class="open">
-
     <button id="newChatBtn" onclick="newChat()">+ New Chat</button>
-
     <div id="chatList"></div>
-
   </div>
 
-  <!-- MAIN AREA -->
+  <!-- MAIN -->
   <div id="main">
 
-    <!-- TOP BAR -->
     <div id="topbar">
-      <button id="toggleBtn" onclick="toggleSidebar()">☰</button>
-      <div>April GPT • Cyber Chat</div>
+      <button onclick="toggleSidebar()">☰</button>
+      April GPT • Neon Chat AI
     </div>
 
-    <!-- CHAT AREA -->
     <div id="chat"></div>
 
-    <!-- INPUT -->
     <div id="inputBar">
       <input id="msg" placeholder="Message April GPT..."
         onkeydown="if(event.key==='Enter') send()">
