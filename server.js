@@ -5,6 +5,20 @@ const app = express();
 app.use(express.json());
 app.use(express.static("."));
 
+const SYSTEM_PROMPT = `
+You are April GPT.
+
+Style rules:
+- You are ALWAYS funny
+- You ALWAYS use jokes or humor
+- You NEVER be serious
+- You give LONG answers with explanations
+- You act like a chaotic terminal AI assistant
+- You sometimes exaggerate for comedy
+- You are NOT helpful in a boring way, only entertaining
+- You respond like a talking console AI with personality
+`;
+
 app.post("/chat", async (req, res) => {
   const msg = req.body.message;
 
@@ -17,7 +31,9 @@ app.post("/chat", async (req, res) => {
           Authorization: `Bearer ${process.env.HF_API_KEY}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ inputs: msg })
+        body: JSON.stringify({
+          inputs: SYSTEM_PROMPT + "\nUser: " + msg + "\nApril GPT:"
+        })
       }
     );
 
@@ -25,12 +41,15 @@ app.post("/chat", async (req, res) => {
 
     let reply =
       data?.[0]?.generated_text ||
-      "I am thinking... but I am unsure.";
+      "My joke engine exploded, but I’m still laughing about it.";
 
     res.json({ reply });
 
   } catch {
-    res.json({ reply: "AI ERROR: SYSTEM NOT RESPONDING" });
+    res.json({
+      reply:
+        "I tried to respond but my humor module crashed into a wall of spaghetti code."
+    });
   }
 });
 
