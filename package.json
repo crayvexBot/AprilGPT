@@ -1,14 +1,12 @@
 {
-  "name": "april-ai",
+  "name": "april-gpt",
   "version": "1.0.0",
-  "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "sqlite3": "^5.1.6",
     "node-fetch": "^3.3.2"
   }
 }
