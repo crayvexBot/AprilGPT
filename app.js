@@ -1,23 +1,20 @@
 const API = "https://aprilgpt-vi60.onrender.com/chat";
 
 let chats = [[]];
-let currentChat = 0;
+let current = 0;
 
-// SIDEBAR TOGGLE
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("closed");
 }
 
-// NEW CHAT
 function newChat() {
   chats.push([]);
-  currentChat = chats.length - 1;
-  renderChatList();
+  current = chats.length - 1;
+  renderList();
   renderChat();
 }
 
-// RENDER CHAT LIST
-function renderChatList() {
+function renderList() {
   const list = document.getElementById("chatList");
   list.innerHTML = "";
 
@@ -27,7 +24,7 @@ function renderChatList() {
     div.innerText = "Chat " + (i + 1);
 
     div.onclick = () => {
-      currentChat = i;
+      current = i;
       renderChat();
     };
 
@@ -35,12 +32,11 @@ function renderChatList() {
   });
 }
 
-// RENDER CHAT MESSAGES
 function renderChat() {
   const chat = document.getElementById("chat");
   chat.innerHTML = "";
 
-  chats[currentChat].forEach(m => {
+  chats[current].forEach(m => {
     const div = document.createElement("div");
     div.className = "msg " + m.role;
     div.innerText = m.text;
@@ -50,7 +46,6 @@ function renderChat() {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// SEND MESSAGE
 async function send() {
   const input = document.getElementById("msg");
   const msg = input.value;
@@ -58,33 +53,29 @@ async function send() {
 
   input.value = "";
 
-  // USER MESSAGE
-  chats[currentChat].push({ role: "user", text: msg });
+  chats[current].push({ role: "user", text: msg });
   renderChat();
 
-  // AI placeholder
-  const loading = { role: "ai", text: "..." };
-  chats[currentChat].push(loading);
+  const temp = { role: "ai", text: "..." };
+  chats[current].push(temp);
   renderChat();
 
   try {
-    const res = await fetch(API, {
+    const r = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: msg })
     });
 
-    const data = await res.json();
-
-    loading.text = data.reply;
+    const d = await r.json();
+    temp.text = d.reply;
     renderChat();
 
   } catch {
-    loading.text = "AI ERROR: connection failed";
+    temp.text = "AI connection lost.";
     renderChat();
   }
 }
 
-// INIT
-renderChatList();
+renderList();
 renderChat();
