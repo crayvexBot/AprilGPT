@@ -6,25 +6,36 @@
 </head>
 <body>
 
-<div id="topbar">
-  April GPT • Chaos Humor Engine
-</div>
+<div id="app">
 
-<div id="boot">
-  Booting humor engine...<br>
-  Loading sarcasm modules...<br>
-  Injecting comedy kernel...<br>
-  Ready to joke.
-</div>
+  <!-- SIDEBAR -->
+  <div id="sidebar" class="open">
 
-<div id="chat" style="display:none;">
+    <button id="newChatBtn" onclick="newChat()">+ New Chat</button>
 
-  <div id="output"></div>
+    <div id="chatList"></div>
 
-  <div id="inputBar">
-    <input id="msg" placeholder="Ask something funny..."
-      onkeydown="if(event.key==='Enter') send()">
-    <button onclick="send()">Send</button>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div id="main">
+
+    <!-- TOP BAR -->
+    <div id="topbar">
+      <button id="toggleBtn" onclick="toggleSidebar()">☰</button>
+      <div>April GPT • Cyber Chat</div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div id="chat"></div>
+
+    <!-- INPUT -->
+    <div id="inputBar">
+      <input id="msg" placeholder="Message April GPT..."
+        onkeydown="if(event.key==='Enter') send()">
+      <button onclick="send()">Send</button>
+    </div>
+
   </div>
 
 </div>
