@@ -34,13 +34,9 @@ Behavior:
 `;
 
 /* =========================
-   BEST MODEL STACK (UPDATED)
+   GROQ MODEL
    ========================= */
-const MODELS = [
-  "mistralai/Mistral-7B-Instruct-v0.2",
-  "HuggingFaceH4/zephyr-7b-beta",
-  "openchat/openchat-3.5-0106"
-];
+const MODEL = "llama3-70b-8192";
 
 /* =========================
    TIMEOUT WRAPPER
@@ -59,19 +55,24 @@ function withTimeout(ms, promise) {
 }
 
 /* =========================
-   SAFE HF CALL
+   GROQ CALL (STABLE)
    ========================= */
-async function callHF(model, msg, retry = false) {
+async function callGroq(msg) {
   const response = await withTimeout(
-    10000,
-    fetch(`https://api-inference.huggingface.co/models/${model}`, {
+    8000,
+    fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.HF_API_KEY}`,
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        inputs: SYSTEM_PROMPT + "\nUser: " + msg + "\nApril GPT:"
+        model: MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: msg }
+        ],
+        temperature: 0.9
       })
     })
   );
@@ -80,30 +81,14 @@ async function callHF(model, msg, retry = false) {
 
   const data = await response.json().catch(() => null);
 
-  console.log("HF RESPONSE:", data);
+  console.log("GROQ RESPONSE:", data);
 
-  // 🧠 detect loading states
-  const error =
-    typeof data?.error === "string"
-      ? data.error
-      : data?.error?.message || null;
-
-  if (error && error.toLowerCase().includes("loading")) {
-    if (!retry) {
-      await new Promise((r) => setTimeout(r, 2000));
-      return callHF(model, msg, true);
-    }
+  // 🧠 error handling
+  if (data?.error || data?.message) {
     return null;
   }
 
-  // 🧠 parse response safely
-  let reply = null;
-
-  if (Array.isArray(data)) {
-    reply = data?.[0]?.generated_text;
-  } else if (typeof data === "object") {
-    reply = data?.generated_text;
-  }
+  const reply = data?.choices?.[0]?.message?.content;
 
   if (typeof reply !== "string" || reply.trim().length < 2) {
     return null;
@@ -118,21 +103,19 @@ async function callHF(model, msg, retry = false) {
 app.post("/chat", async (req, res) => {
   const msg = req.body.message;
 
-  for (const model of MODELS) {
-    try {
-      const reply = await callHF(model, msg);
-      if (reply) {
-        return res.json({ reply });
-      }
-    } catch (e) {
-      console.log("Model failed:", model);
+  try {
+    const reply = await callGroq(msg);
+
+    if (reply) {
+      return res.json({ reply });
     }
+  } catch (e) {
+    console.log("Groq error:", e);
   }
 
-  // 🧠 FINAL FALLBACK
   return res.json({
     reply:
-      "I tried processing your message, but my neural circuits started arguing with each other about whether logic is optional today. So I responded anyway with confident confusion, chaotic reasoning, and a dramatic internal system glitch performance."
+      "I tried thinking about your message, but my neural circuits started arguing like confused philosophers inside a neon server loop. So I responded anyway with chaotic confidence and emotional buffering noise."
   });
 });
 
@@ -141,5 +124,5 @@ app.post("/chat", async (req, res) => {
    ========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log("April GPT running with Mistral + Zephyr + OpenChat")
+  console.log("April GPT running on Groq (stable production version)")
 );
