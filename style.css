@@ -1,128 +1,54 @@
 body {
   margin: 0;
-  font-family: Arial;
-  background: radial-gradient(circle at top, #0d0d0d, #000);
-  color: white;
+  background: black;
+  color: #00ff88;
+  font-family: monospace;
 }
 
-#app {
-  display: flex;
+.terminal {
   height: 100vh;
-}
-
-/* SIDEBAR */
-#sidebar {
-  width: 260px;
-  background: #0b0b0b;
-  border-right: 1px solid #00ffcc;
-  padding: 10px;
-  transition: 0.3s;
-}
-
-#sidebar.closed {
-  width: 0;
-  overflow: hidden;
-  padding: 0;
-}
-
-#newChatBtn {
-  width: 100%;
-  padding: 10px;
-  background: linear-gradient(90deg, #00ffcc, #0066ff);
-  border: none;
-  color: black;
-  font-weight: bold;
-  cursor: pointer;
-  margin-bottom: 10px;
-}
-
-.chatItem {
-  padding: 10px;
-  margin-bottom: 6px;
-  background: rgba(255,255,255,0.05);
-  border-left: 3px solid #00ffcc;
-  cursor: pointer;
-}
-
-.chatItem:hover {
-  background: rgba(0,255,204,0.1);
-}
-
-/* MAIN */
-#main {
-  flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* TOP */
-#topbar {
-  height: 50px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  background: #111;
-  border-bottom: 1px solid #00ffcc;
-}
-
-/* CHAT */
-#chat {
+/* chat window */
+.chat {
   flex: 1;
-  padding: 15px;
+  padding: 10px;
   overflow-y: auto;
+}
+
+/* each message line */
+.line {
+  margin: 4px 0;
+  white-space: pre-wrap;
+}
+
+/* input bar */
+.input-bar {
   display: flex;
-  flex-direction: column;
+  padding: 10px;
+  border-top: 1px solid #00ff88;
   gap: 10px;
 }
 
-/* MESSAGES */
-.msg {
-  max-width: 70%;
-  padding: 12px;
-  border-radius: 12px;
-  animation: pop 0.2s ease;
+.prompt {
+  color: #00ff88;
 }
 
-@keyframes pop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.user {
-  align-self: flex-end;
-  background: linear-gradient(90deg, #00ffcc, #00aaff);
-  color: black;
-}
-
-.ai {
-  align-self: flex-start;
-  background: #111;
-  border: 1px solid #00ffcc;
-  color: #00ffcc;
-}
-
-/* INPUT */
-#inputBar {
-  display: flex;
-  padding: 10px;
-  border-top: 1px solid #00ffcc;
-  background: #0b0b0b;
-}
-
-#msg {
+input {
   flex: 1;
-  padding: 12px;
   background: black;
-  border: 1px solid #00ffcc;
-  color: #00ffcc;
+  border: 1px solid #00ff88;
+  color: #00ff88;
+  padding: 8px;
   outline: none;
 }
 
 button {
-  margin-left: 10px;
-  padding: 10px 14px;
-  background: linear-gradient(90deg, #00ffcc, #0066ff);
+  background: #00ff88;
   border: none;
+  padding: 8px 12px;
   cursor: pointer;
   font-weight: bold;
 }
