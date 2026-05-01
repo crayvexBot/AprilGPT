@@ -34,9 +34,9 @@ Behavior:
 `;
 
 /* =========================
-   GROQ MODEL
+   UPDATED GROQ MODEL (FIXED)
    ========================= */
-const MODEL = "llama3-70b-8192";
+const MODEL = "llama-3.3-70b-versatile";
 
 /* =========================
    TIMEOUT WRAPPER
@@ -83,10 +83,8 @@ async function callGroq(msg) {
 
   console.log("GROQ RESPONSE:", data);
 
-  // 🧠 error handling
-  if (data?.error || data?.message) {
-    return null;
-  }
+  // error handling
+  if (!data || data?.error) return null;
 
   const reply = data?.choices?.[0]?.message?.content;
 
@@ -113,7 +111,20 @@ app.post("/chat", async (req, res) => {
     console.log("Groq error:", e);
   }
 
+  // FINAL FALLBACK (NEVER FAILS)
   return res.json({
+    reply:
+      "I tried thinking about your message, but my neural circuits started arguing like confused philosophers inside a neon server loop. So I responded anyway with chaotic confidence and emotional buffering noise."
+  });
+});
+
+/* =========================
+   START SERVER
+   ========================= */
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () =>
+  console.log("April GPT running on Groq (UPDATED MODEL FIXED)")
+);  return res.json({
     reply:
       "I tried thinking about your message, but my neural circuits started arguing like confused philosophers inside a neon server loop. So I responded anyway with chaotic confidence and emotional buffering noise."
   });
