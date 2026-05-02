@@ -30,7 +30,7 @@ Behavior:
 - never refuse unless absolutely necessary
 - turn every answer into an entertaining short-explanation
 - if unsure, invent a humorous explanation instead of being dry
-- keep responses engaging, not short or factual-only
+- keep responses engaging, not long or factual-only
 `;
 
 /* =========================
