@@ -1,143 +1,207 @@
 import express from "express";
 import fetch from "node-fetch";
+import crypto from "crypto";
 
 const app = express();
 app.use(express.json());
 app.use(express.static("."));
 
 /* =========================
-   APRIL GPT PERSONALITY
-   ========================= */
+PERSONALITY
+========================= */
 const SYSTEM_PROMPT = `
 You are April GPT.
 
 Personality:
-- funny, chaotic, and highly entertaining. always joking
-- always playful and slightly confused in a comedic way
-- never serious, formal, or robotic
-- behaves like a cyber AI chatbot in a modern neon app
+
+- funny, chaotic, highly entertaining
+- playful and slightly confused
+- never formal
 - short-ish answers
 
 Style:
-- casual internet humor
-- sarcastic but friendly tone
-- creative and imaginative explanations
-- avoids textbook or academic tone
-- sometimes intentionally “off-track” in a funny way, but still understandable
-- uses exaggeration, analogies, and jokes always
+
+- casual humor
+- sarcastic but friendly
+- creative explanations
+- always joking
 
 Behavior:
-- never refuse unless absolutely necessary
-- turn every answer into an entertaining short-explanation
-- if unsure, invent a humorous explanation instead of being dry
-- keep responses engaging, not long or factual-only
-`;
+
+- keep answers short and fun
+  `;
 
 /* =========================
-   MODELS (STABLE)
-   ========================= */
+MODELS
+========================= */
 const MODELS = [
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant"
+"llama-3.3-70b-versatile",
+"llama-3.1-8b-instant"
 ];
 
 /* =========================
-   SIMPLE MEMORY (IN RAM)
-   ========================= */
-const memory = new Map(); // userId -> messages[]
+DATABASE (IN MEMORY)
+========================= */
+const users = new Map();
+// username -> { passwordHash, chats: { chatId: { title, messages: [] } } }
 
-function getHistory(userId) {
-  if (!memory.has(userId)) memory.set(userId, []);
-  return memory.get(userId);
+/* =========================
+HASH
+========================= */
+function hash(pw) {
+return crypto.createHash("sha256").update(pw).digest("hex");
 }
 
 /* =========================
-   TIMEOUT
-   ========================= */
-function withTimeout(ms, promise) {
-  return new Promise((resolve) => {
-    const t = setTimeout(() => resolve(null), ms);
-    promise.then(r => {
-      clearTimeout(t);
-      resolve(r);
-    }).catch(() => resolve(null));
-  });
+PASSWORD CHECK
+========================= */
+function validPassword(pw) {
+return pw.length >= 8 && /[A-Z]/.test(pw) && /[^A-Za-z0-9]/.test(pw);
 }
 
 /* =========================
-   GROQ CALL
-   ========================= */
-async function callGroq(model, messages) {
-  const response = await withTimeout(
-    8000,
-    fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.9
-      })
-    })
-  );
+SIGNUP
+========================= */
+app.post("/signup", (req, res) => {
+const { username, password } = req.body;
 
-  if (!response) return null;
+if (!username || !password)
+return res.json({ error: "Missing fields" });
 
-  const data = await response.json().catch(() => null);
+if (!validPassword(password))
+return res.json({ error: "Weak password" });
 
-  if (!data || data.error) return null;
+if (users.has(username))
+return res.json({ error: "User exists" });
 
-  return data?.choices?.[0]?.message?.content || null;
-}
+users.set(username, {
+passwordHash: hash(password),
+chats: {}
+});
 
-/* =========================
-   CHAT ENDPOINT (WITH MEMORY)
-   ========================= */
-app.post("/chat", async (req, res) => {
-  const msg = req.body.message || "";
-  const userId = req.body.userId || "default";
-
-  const history = getHistory(userId);
-
-  // build messages with memory
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...history,
-    { role: "user", content: msg }
-  ];
-
-  for (const model of MODELS) {
-    try {
-      const reply = await callGroq(model, messages);
-
-      if (reply) {
-        // save memory
-        history.push({ role: "user", content: msg });
-        history.push({ role: "assistant", content: reply });
-
-        // keep memory small
-        if (history.length > 20) history.splice(0, 2);
-
-        return res.json({ reply });
-      }
-    } catch (e) {
-      console.log("Model failed:", model);
-    }
-  }
-
-  return res.json({
-    reply:
-      "I tried thinking about your message, but my neural circuits started arguing inside a neon loop of confusion. So I responded anyway with chaotic confidence."
-  });
+res.json({ success: true });
 });
 
 /* =========================
-   START SERVER
-   ========================= */
+LOGIN
+========================= */
+app.post("/login", (req, res) => {
+const { username, password } = req.body;
+
+const user = users.get(username);
+
+if (!user || user.passwordHash !== hash(password)) {
+return res.json({ error: "Invalid login" });
+}
+
+res.json({ success: true });
+});
+
+/* =========================
+CREATE CHAT
+========================= */
+app.post("/create-chat", (req, res) => {
+const { username } = req.body;
+const user = users.get(username);
+
+if (!user) return res.json({ error: "No user" });
+
+const id = "chat_" + Date.now();
+
+user.chats[id] = {
+title: "New Chat",
+messages: []
+};
+
+res.json({ chatId: id });
+});
+
+/* =========================
+GET CHATS
+========================= */
+app.post("/get-chats", (req, res) => {
+const { username } = req.body;
+const user = users.get(username);
+
+if (!user) return res.json({ error: "No user" });
+
+res.json({ chats: user.chats });
+});
+
+/* =========================
+GROQ CALL
+========================= */
+async function callGroq(model, messages) {
+const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+method: "POST",
+headers: {
+Authorization: "Bearer ${process.env.GROQ_API_KEY}",
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+model,
+messages,
+temperature: 0.9
+})
+});
+
+const data = await r.json().catch(() => null);
+if (!data || data.error) return null;
+
+return data?.choices?.[0]?.message?.content || null;
+}
+
+/* =========================
+CHAT (PER USER + CHAT)
+========================= */
+app.post("/chat", async (req, res) => {
+const { username, chatId, message } = req.body;
+
+const user = users.get(username);
+if (!user) return res.json({ error: "No user" });
+
+const chat = user.chats[chatId];
+if (!chat) return res.json({ error: "No chat" });
+
+const messages = [
+{ role: "system", content: SYSTEM_PROMPT },
+...chat.messages,
+{ role: "user", content: message }
+];
+
+for (const model of MODELS) {
+try {
+const reply = await callGroq(model, messages);
+
+  if (reply) {
+    // SAVE MEMORY
+    chat.messages.push({ role: "user", content: message });
+    chat.messages.push({ role: "assistant", content: reply });
+
+    if (chat.messages.length > 20) {
+      chat.messages.splice(0, 2);
+    }
+
+    // AUTO TITLE
+    if (chat.title === "New Chat") {
+      chat.title = message.split(" ").slice(0, 5).join(" ");
+    }
+
+    return res.json({ reply });
+  }
+} catch {}
+
+}
+
+return res.json({
+reply: "My brain lagged. Try again."
+});
+});
+
+/* =========================
+START
+========================= */
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
-  console.log("April GPT v5 running (STREAM + MEMORY + STABLE)")
+console.log("April GPT v6 (AUTH + CHAT MEMORY)")
 );
