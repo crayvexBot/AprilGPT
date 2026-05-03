@@ -1,164 +1,14 @@
 <!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>April GPT</title><style>
-:root {
-  --bg: #ffffff;
-  --panel: #f7f7f8;
-  --text: #000;
-  --ai: #f1f1f1;
-  --user: #dbeafe;
-}
+<title>April GPT</title>
+<link rel="stylesheet" href="style.css" />
+</head><body><div class="app">  <!-- SIDEBAR (Discord style) -->  <div class="sidebar">
+    <div class="brand">AprilGPT</div><button class="new-chat" onclick="newChat()">+ New Chat</button>
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f0f0f;
-    --panel: #1a1a1a;
-    --text: #ffffff;
-    --ai: #2a2a2a;
-    --user: #2563eb33;
-  }
-}
+<div id="chatList" class="chat-list"></div>
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: Arial, sans-serif;
-}
-
-.app {
-  display: flex;
-  height: 100vh;
-}
-
-/* SIDEBAR */
-.sidebar {
-  width: 260px;
-  background: var(--panel);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-.brand {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.new-chat {
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
-.chat-item {
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  position: relative;
-}
-
-.chat-item:hover {
-  background: rgba(0,0,0,0.1);
-}
-
-.chat-item.active {
-  background: rgba(0,0,0,0.2);
-}
-
-.chat-actions {
-  position: absolute;
-  right: 5px;
-  top: 5px;
-  display: none;
-}
-
-.chat-item:hover .chat-actions {
-  display: flex;
-  gap: 5px;
-}
-
-.chat-actions button {
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-/* MAIN */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 25px;
-}
-
-/* MESSAGES */
-.msg {
-  max-width: 75%;
-  padding: 16px 18px;
-  margin: 14px 0;
-  border-radius: 18px;
-  font-size: 16px;
-  line-height: 1.6;
-  animation: fadeIn 0.2s ease;
-}
-
-.msg.user {
-  margin-left: auto;
-  background: var(--user);
-}
-
-.msg.ai {
-  margin-right: auto;
-  background: var(--ai);
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* INPUT (20% HEIGHT) */
-.input-area {
-  height: 20%;
-  display: flex;
-  padding: 20px;
-  gap: 10px;
-  background: var(--panel);
-}
-
-.input-area input {
-  flex: 1;
-  padding: 18px;
-  border-radius: 12px;
-  border: none;
-  outline: none;
-  font-size: 16px;
-  background: #00000010;
-  color: var(--text);
-}
-
-.input-area button {
-  padding: 18px 25px;
-  border-radius: 12px;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-}
-</style></head><body><div class="app">  <!-- SIDEBAR -->  <div class="sidebar">
-    <div class="brand">April GPT v3</div><button class="new-chat" onclick="newChat()">+ New Chat</button>
-
-<div id="chatList"></div>
-
-  </div>  <!-- MAIN -->  <div class="main"><div id="chat" class="chat"></div>
+  </div>  <!-- MAIN (ChatGPT style) -->  <div class="main"><div id="chat" class="chat"></div>
 
 <div class="input-area">
   <input id="input" placeholder="Message April GPT..." />
@@ -172,6 +22,13 @@ let currentChat = localStorage.getItem("currentChat") || null;
 const chatEl = document.getElementById("chat");
 const chatList = document.getElementById("chatList");
 const input = document.getElementById("input");
+
+/* FIX OLD DATA */
+Object.keys(chats).forEach(id => {
+  if (Array.isArray(chats[id])) {
+    chats[id] = { title: "New Chat", messages: chats[id] };
+  }
+});
 
 /* INIT */
 function init() {
@@ -205,14 +62,12 @@ function switchChat(id) {
 
 /* DELETE */
 function deleteChat(id) {
-  if (!confirm("Delete this chat?")) return;
+  if (!confirm("Delete chat?")) return;
 
   delete chats[id];
 
-  if (currentChat === id) {
-    const keys = Object.keys(chats);
-    currentChat = keys[0] || null;
-  }
+  const keys = Object.keys(chats);
+  currentChat = keys[0] || null;
 
   save();
   renderSidebar();
@@ -223,7 +78,7 @@ function deleteChat(id) {
 
 /* RENAME */
 function renameChat(id) {
-  const name = prompt("Rename chat:", chats[id].title);
+  const name = prompt("Rename:", chats[id].title);
   if (!name) return;
 
   chats[id].title = name;
@@ -242,17 +97,24 @@ function renderSidebar() {
   chatList.innerHTML = "";
 
   Object.keys(chats).forEach(id => {
-    const div = document.createElement("div");
-    div.className = "chat-item";
+    const item = document.createElement("div");
+    item.className = "chat-item";
+    if (id === currentChat) item.classList.add("active");
 
-    if (id === currentChat) div.classList.add("active");
+    const title = chats[id].title || "New Chat";
+    item.innerText = "# " + title;
 
-    div.innerText = chats[id].title;
-
-    div.onclick = () => switchChat(id);
+    item.onclick = () => switchChat(id);
 
     const actions = document.createElement("div");
     actions.className = "chat-actions";
+
+    const rename = document.createElement("button");
+    rename.innerText = "✏️";
+    rename.onclick = (e) => {
+      e.stopPropagation();
+      renameChat(id);
+    };
 
     const del = document.createElement("button");
     del.innerText = "🗑";
@@ -261,22 +123,15 @@ function renderSidebar() {
       deleteChat(id);
     };
 
-    const ren = document.createElement("button");
-    ren.innerText = "✏️";
-    ren.onclick = (e) => {
-      e.stopPropagation();
-      renameChat(id);
-    };
-
-    actions.appendChild(ren);
+    actions.appendChild(rename);
     actions.appendChild(del);
-    div.appendChild(actions);
+    item.appendChild(actions);
 
-    chatList.appendChild(div);
+    chatList.appendChild(item);
   });
 }
 
-/* LOAD CHAT */
+/* LOAD */
 function loadChat(id) {
   chatEl.innerHTML = "";
 
@@ -287,7 +142,7 @@ function loadChat(id) {
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-/* UI MESSAGE */
+/* MESSAGE UI */
 function addMessageUI(role, text) {
   const div = document.createElement("div");
   div.className = "msg " + role;
@@ -295,13 +150,13 @@ function addMessageUI(role, text) {
   chatEl.appendChild(div);
 }
 
-/* STREAM */
+/* STREAM FIXED */
 function stream(el, text) {
   el.innerText = "";
   let i = 0;
 
   const int = setInterval(() => {
-    el.innerText += text[i] || "";
+    el.innerText += text.charAt(i);
     i++;
 
     chatEl.scrollTop = chatEl.scrollHeight;
@@ -332,19 +187,22 @@ async function send() {
 
   const data = await res.json();
 
-  stream(aiDiv, data.reply);
+  // FIX spacing issue
+  const fixed = data.reply.replace(/([a-z])([A-Z])/g, "$1 $2");
 
-  chats[currentChat].messages.push({ role: "ai", text: data.reply });
+  stream(aiDiv, fixed);
+
+  chats[currentChat].messages.push({ role: "ai", text: fixed });
 
   if (chats[currentChat].title === "New Chat") {
-    chats[currentChat].title = msg.slice(0, 30);
+    chats[currentChat].title = msg.split(" ").slice(0,5).join(" ");
     renderSidebar();
   }
 
   save();
 }
 
-/* ENTER KEY */
+/* ENTER SEND */
 input.addEventListener("keydown", e => {
   if (e.key === "Enter") send();
 });
