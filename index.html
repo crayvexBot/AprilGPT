@@ -1,7 +1,10 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>April GPT Login</title><style>
+<title>April GPT</title>
+
+<style>
 :root {
   --bg: #0f0f0f;
   --panel: #1a1a1a;
@@ -14,6 +17,10 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Arial, sans-serif;
+}
+
+/* LOGIN */
+.login {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,101 +32,122 @@ body {
   padding: 30px;
   border-radius: 14px;
   width: 320px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
-h2 {
-  margin-top: 0;
-  text-align: center;
-}
-
-input {
+input, button {
   width: 100%;
   padding: 12px;
   margin: 8px 0;
   border-radius: 8px;
   border: none;
-  outline: none;
-  background: #00000040;
-  color: white;
-  font-size: 14px;
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 8px;
-  border: none;
   background: var(--accent);
   color: white;
-  font-size: 15px;
   cursor: pointer;
 }
 
-button:hover {
-  opacity: 0.9;
+/* CHAT */
+.app {
+  display: none;
+  height: 100vh;
 }
 
-.rules {
-  font-size: 12px;
-  color: #aaa;
-  margin-top: 5px;
+.sidebar {
+  width: 250px;
+  background: #111;
+  padding: 10px;
 }
 
-.switch {
-  margin-top: 12px;
-  font-size: 13px;
-  text-align: center;
-  color: #aaa;
-  cursor: pointer;
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.error {
-  color: red;
-  font-size: 13px;
-  margin-top: 5px;
-  text-align: center;
+.chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
 }
-</style></head><body><div class="box">
-  <h2 id="title">Sign Up</h2>  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">  <div id="rules" class="rules">
-    * Must be 8+ characters<br>
-    * Must contain a capital letter<br>
-    * Must contain a special character
-  </div><button onclick="submit()">Sign Up</button>
 
-  <div id="switch" class="switch" onclick="toggle()">
-    Already have an account? Login
-  </div>  <div id="error" class="error"></div>
-</div><script>
+.msg {
+  margin: 5px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.user { background: #2563eb; }
+.ai { background: #333; }
+
+.input-area {
+  display: flex;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginUI" class="login">
+  <div class="box">
+    <h2 id="title">Sign Up</h2>
+
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+
+    <div id="rules">
+      * 8+ chars, capital, special char
+    </div>
+
+    <button onclick="submit()">Sign Up</button>
+
+    <div onclick="toggle()" style="cursor:pointer; font-size:13px;">
+      Switch Login/Signup
+    </div>
+
+    <div id="error" style="color:red;"></div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div id="chatUI" class="app">
+  <div class="sidebar">
+    <button onclick="newChat()">+ New Chat</button>
+    <div id="chatList"></div>
+  </div>
+
+  <div class="main">
+    <div id="chat" class="chat"></div>
+
+    <div class="input-area">
+      <input id="input">
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let username = localStorage.getItem("username");
+
+/* ================= LOGIN ================= */
 let isLogin = false;
 
 function toggle() {
   isLogin = !isLogin;
-
-  document.getElementById("title").innerText = isLogin ? "Login" : "Sign Up";
-  document.querySelector("button").innerText = isLogin ? "Login" : "Sign Up";
-
-  document.getElementById("rules").style.display = isLogin ? "none" : "block";
-
-  document.getElementById("switch").innerText = isLogin
-    ? "Don't have an account? Sign Up"
-    : "Already have an account? Login";
-
-  document.getElementById("error").innerText = "";
 }
 
 async function submit() {
-  const username = document.getElementById("username").value.trim();
-  const password = document.getElementById("password").value;
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
 
   const route = isLogin ? "/login" : "/signup";
 
   const res = await fetch(route, {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username: user, password: pass })
   });
 
   const data = await res.json();
@@ -129,11 +157,124 @@ async function submit() {
     return;
   }
 
-  // save session
-  localStorage.setItem("username", username);
-
-  // go to chat UI
-  window.location.href = "chat.html";
+  localStorage.setItem("username", user);
+  startChat();
 }
-</script></body>
+
+/* ================= CHAT ================= */
+let chats = {};
+let currentChat = null;
+
+const chatEl = document.getElementById("chat");
+const chatList = document.getElementById("chatList");
+const input = document.getElementById("input");
+
+function startChat() {
+  document.getElementById("loginUI").style.display = "none";
+  document.getElementById("chatUI").style.display = "flex";
+  init();
+}
+
+async function init() {
+  await loadChats();
+  if (!currentChat) await newChat();
+  else loadChat(currentChat);
+}
+
+async function loadChats() {
+  const res = await fetch("/get-chats", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username })
+  });
+
+  const data = await res.json();
+  chats = data.chats || {};
+  currentChat = Object.keys(chats)[0] || null;
+
+  renderSidebar();
+}
+
+async function newChat() {
+  const res = await fetch("/create-chat", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username })
+  });
+
+  const data = await res.json();
+  currentChat = data.chatId;
+
+  await loadChats();
+  loadChat(currentChat);
+}
+
+function renderSidebar() {
+  chatList.innerHTML = "";
+  Object.keys(chats).forEach(id => {
+    const div = document.createElement("div");
+    div.innerText = chats[id].title || "Chat";
+    div.onclick = () => {
+      currentChat = id;
+      loadChat(id);
+    };
+    chatList.appendChild(div);
+  });
+}
+
+function loadChat(id) {
+  chatEl.innerHTML = "";
+  (chats[id]?.messages || []).forEach(m => {
+    addMessageUI(m.role === "assistant" ? "ai" : "user", m.content);
+  });
+}
+
+function addMessageUI(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerText = text;
+  chatEl.appendChild(div);
+}
+
+/* FAKE STREAM */
+function stream(el, text) {
+  let i = 0;
+  const int = setInterval(() => {
+    el.innerText += text[i++];
+    if (i >= text.length) clearInterval(int);
+  }, 10);
+}
+
+async function send() {
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = "";
+  addMessageUI("user", msg);
+
+  const aiDiv = document.createElement("div");
+  aiDiv.className = "msg ai";
+  chatEl.appendChild(aiDiv);
+
+  const res = await fetch("/chat", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username,
+      chatId: currentChat,
+      message: msg
+    })
+  });
+
+  const data = await res.json();
+  stream(aiDiv, data.reply || "");
+}
+
+/* AUTO START */
+if (username) {
+  startChat();
+}
+</script>
+
+</body>
 </html>
