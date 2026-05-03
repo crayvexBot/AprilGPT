@@ -1,0 +1,226 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>April GPT</title>
+<link rel="stylesheet" href="style.css" />
+</head><body><div class="app">  <!-- SIDEBAR -->  <div class="sidebar">
+    <div class="brand">April GPT</div><button class="new-chat" onclick="newChat()">+ New Chat</button>
+
+<div id="chatList" class="chat-list"></div>
+
+  </div>  <!-- MAIN -->  <div class="main"><div id="chat" class="chat"></div>
+
+<div class="input-area">
+  <input id="input" placeholder="Message April GPT..." />
+  <button onclick="send()">Send</button>
+</div>
+
+  </div></div><script>
+const username = localStorage.getItem("username");
+
+if (!username) {
+  location.href = "index.html";
+}
+
+/* =========================
+   STATE
+========================= */
+let chats = {};
+let currentChat = null;
+
+const chatEl = document.getElementById("chat");
+const chatList = document.getElementById("chatList");
+const input = document.getElementById("input");
+
+/* =========================
+   INIT
+========================= */
+async function init() {
+  await loadChats();
+
+  if (!currentChat) {
+    await newChat();
+  } else {
+    loadChat(currentChat);
+  }
+}
+
+/* =========================
+   LOAD CHATS
+========================= */
+async function loadChats() {
+  const res = await fetch("/get-chats", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username })
+  });
+
+  const data = await res.json();
+
+  chats = data.chats || {};
+  currentChat = currentChat || Object.keys(chats)[0] || null;
+
+  renderSidebar();
+}
+
+/* =========================
+   NEW CHAT
+========================= */
+async function newChat() {
+  const res = await fetch("/create-chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ username })
+  });
+
+  const data = await res.json();
+
+  currentChat = data.chatId;
+
+  await loadChats();
+  loadChat(currentChat);
+}
+
+/* =========================
+   SWITCH CHAT
+========================= */
+function switchChat(id) {
+  currentChat = id;
+  renderSidebar();
+  loadChat(id);
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+function renderSidebar() {
+  chatList.innerHTML = "";
+
+  Object.keys(chats).forEach(id => {
+    const div = document.createElement("div");
+    div.className = "chat-item";
+
+    if (id === currentChat) {
+      div.classList.add("active");
+    }
+
+    div.innerText = chats[id].title || "New Chat";
+
+    div.onclick = () => switchChat(id);
+
+    chatList.appendChild(div);
+  });
+}
+
+/* =========================
+   LOAD CHAT
+========================= */
+function loadChat(id) {
+  chatEl.innerHTML = "";
+
+  const messages = chats[id]?.messages || [];
+
+  messages.forEach(m => {
+    addMessageUI(
+      m.role === "assistant" ? "ai" : "user",
+      m.content
+    );
+  });
+
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+/* =========================
+   UI MESSAGE
+========================= */
+function addMessageUI(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerText = text;
+  chatEl.appendChild(div);
+}
+
+/* =========================
+   STREAM
+========================= */
+function stream(el, text) {
+  el.innerText = "";
+  let i = 0;
+
+  const int = setInterval(() => {
+    el.innerText += text.charAt(i);
+    i++;
+
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    if (i >= text.length) {
+      clearInterval(int);
+    }
+  }, 10);
+}
+
+/* =========================
+   SEND
+========================= */
+async function send() {
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = "";
+
+  addMessageUI("user", msg);
+
+  const aiDiv = document.createElement("div");
+  aiDiv.className = "msg ai";
+  chatEl.appendChild(aiDiv);
+
+  const res = await fetch("/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      username,
+      chatId: currentChat,
+      message: msg
+    })
+  });
+
+  const data = await res.json();
+
+  const reply = (data.reply || "").replace(/([a-z])([A-Z])/g, "$1 $2");
+
+  stream(aiDiv, reply);
+
+  await loadChats();
+
+  chats[currentChat].messages.push({
+    role: "user",
+    content: msg
+  });
+
+  chats[currentChat].messages.push({
+    role: "assistant",
+    content: reply
+  });
+}
+
+/* =========================
+   ENTER KEY
+========================= */
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    send();
+  }
+});
+
+/* =========================
+   START
+========================= */
+init();
+</script></body>
+</html>
