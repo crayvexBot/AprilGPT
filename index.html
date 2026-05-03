@@ -1,212 +1,139 @@
 <!DOCTYPE html><html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>April GPT</title>
-<link rel="stylesheet" href="style.css" />
-</head><body><div class="app">  <!-- SIDEBAR (Discord style) -->  <div class="sidebar">
-    <div class="brand">AprilGPT</div><button class="new-chat" onclick="newChat()">+ New Chat</button>
-
-<div id="chatList" class="chat-list"></div>
-
-  </div>  <!-- MAIN (ChatGPT style) -->  <div class="main"><div id="chat" class="chat"></div>
-
-<div class="input-area">
-  <input id="input" placeholder="Message April GPT..." />
-  <button onclick="send()">Send</button>
-</div>
-
-  </div></div><script>
-let chats = JSON.parse(localStorage.getItem("chats") || "{}");
-let currentChat = localStorage.getItem("currentChat") || null;
-
-const chatEl = document.getElementById("chat");
-const chatList = document.getElementById("chatList");
-const input = document.getElementById("input");
-
-/* FIX OLD DATA */
-Object.keys(chats).forEach(id => {
-  if (Array.isArray(chats[id])) {
-    chats[id] = { title: "New Chat", messages: chats[id] };
-  }
-});
-
-/* INIT */
-function init() {
-  if (!currentChat) newChat();
-  renderSidebar();
-  loadChat(currentChat);
+<meta charset="UTF-8">
+<title>April GPT Login</title><style>
+:root {
+  --bg: #0f0f0f;
+  --panel: #1a1a1a;
+  --text: #ffffff;
+  --accent: #2563eb;
 }
 
-/* NEW CHAT */
-function newChat() {
-  const id = "chat_" + Date.now();
-
-  chats[id] = {
-    title: "New Chat",
-    messages: []
-  };
-
-  currentChat = id;
-
-  save();
-  renderSidebar();
-  loadChat(id);
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
-/* SWITCH */
-function switchChat(id) {
-  currentChat = id;
-  save();
-  loadChat(id);
+.box {
+  background: var(--panel);
+  padding: 30px;
+  border-radius: 14px;
+  width: 320px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
-/* DELETE */
-function deleteChat(id) {
-  if (!confirm("Delete chat?")) return;
-
-  delete chats[id];
-
-  const keys = Object.keys(chats);
-  currentChat = keys[0] || null;
-
-  save();
-  renderSidebar();
-
-  if (currentChat) loadChat(currentChat);
-  else newChat();
+h2 {
+  margin-top: 0;
+  text-align: center;
 }
 
-/* RENAME */
-function renameChat(id) {
-  const name = prompt("Rename:", chats[id].title);
-  if (!name) return;
-
-  chats[id].title = name;
-  save();
-  renderSidebar();
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  background: #00000040;
+  color: white;
+  font-size: 14px;
 }
 
-/* SAVE */
-function save() {
-  localStorage.setItem("chats", JSON.stringify(chats));
-  localStorage.setItem("currentChat", currentChat);
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
 }
 
-/* SIDEBAR */
-function renderSidebar() {
-  chatList.innerHTML = "";
-
-  Object.keys(chats).forEach(id => {
-    const item = document.createElement("div");
-    item.className = "chat-item";
-    if (id === currentChat) item.classList.add("active");
-
-    const title = chats[id].title || "New Chat";
-    item.innerText = "# " + title;
-
-    item.onclick = () => switchChat(id);
-
-    const actions = document.createElement("div");
-    actions.className = "chat-actions";
-
-    const rename = document.createElement("button");
-    rename.innerText = "✏️";
-    rename.onclick = (e) => {
-      e.stopPropagation();
-      renameChat(id);
-    };
-
-    const del = document.createElement("button");
-    del.innerText = "🗑";
-    del.onclick = (e) => {
-      e.stopPropagation();
-      deleteChat(id);
-    };
-
-    actions.appendChild(rename);
-    actions.appendChild(del);
-    item.appendChild(actions);
-
-    chatList.appendChild(item);
-  });
+button:hover {
+  opacity: 0.9;
 }
 
-/* LOAD */
-function loadChat(id) {
-  chatEl.innerHTML = "";
-
-  (chats[id]?.messages || []).forEach(m => {
-    addMessageUI(m.role, m.text);
-  });
-
-  chatEl.scrollTop = chatEl.scrollHeight;
+.rules {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 5px;
 }
 
-/* MESSAGE UI */
-function addMessageUI(role, text) {
-  const div = document.createElement("div");
-  div.className = "msg " + role;
-  div.innerText = text;
-  chatEl.appendChild(div);
+.switch {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+  color: #aaa;
+  cursor: pointer;
 }
 
-/* STREAM FIXED */
-function stream(el, text) {
-  el.innerText = "";
-  let i = 0;
+.error {
+  color: red;
+  font-size: 13px;
+  margin-top: 5px;
+  text-align: center;
+}
+</style></head><body><div class="box">
+  <h2 id="title">Sign Up</h2>  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">  <div id="rules" class="rules">
+    * Must be 8+ characters<br>
+    * Must contain a capital letter<br>
+    * Must contain a special character
+  </div><button onclick="submit()">Sign Up</button>
 
-  const int = setInterval(() => {
-    el.innerText += text.charAt(i);
-    i++;
+  <div id="switch" class="switch" onclick="toggle()">
+    Already have an account? Login
+  </div>  <div id="error" class="error"></div>
+</div><script>
+let isLogin = false;
 
-    chatEl.scrollTop = chatEl.scrollHeight;
+function toggle() {
+  isLogin = !isLogin;
 
-    if (i >= text.length) clearInterval(int);
-  }, 12);
+  document.getElementById("title").innerText = isLogin ? "Login" : "Sign Up";
+  document.querySelector("button").innerText = isLogin ? "Login" : "Sign Up";
+
+  document.getElementById("rules").style.display = isLogin ? "none" : "block";
+
+  document.getElementById("switch").innerText = isLogin
+    ? "Don't have an account? Sign Up"
+    : "Already have an account? Login";
+
+  document.getElementById("error").innerText = "";
 }
 
-/* SEND */
-async function send() {
-  const msg = input.value.trim();
-  if (!msg) return;
+async function submit() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
 
-  input.value = "";
+  const route = isLogin ? "/login" : "/signup";
 
-  chats[currentChat].messages.push({ role: "user", text: msg });
-  addMessageUI("user", msg);
-
-  const aiDiv = document.createElement("div");
-  aiDiv.className = "msg ai";
-  chatEl.appendChild(aiDiv);
-
-  const res = await fetch("/chat", {
+  const res = await fetch(route, {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ message: msg })
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ username, password })
   });
 
   const data = await res.json();
 
-  // FIX spacing issue
-  const fixed = data.reply.replace(/([a-z])([A-Z])/g, "$1 $2");
-
-  stream(aiDiv, fixed);
-
-  chats[currentChat].messages.push({ role: "ai", text: fixed });
-
-  if (chats[currentChat].title === "New Chat") {
-    chats[currentChat].title = msg.split(" ").slice(0,5).join(" ");
-    renderSidebar();
+  if (data.error) {
+    document.getElementById("error").innerText = data.error;
+    return;
   }
 
-  save();
+  // save session
+  localStorage.setItem("username", username);
+
+  // go to chat UI
+  window.location.href = "chat.html";
 }
-
-/* ENTER SEND */
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter") send();
-});
-
-init();
 </script></body>
 </html>
